@@ -13,6 +13,16 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     private GameObject _gumka;
     [SerializeField]
+    private GameObject _inkBomb;
+
+    [Header("Ammo")]
+    [SerializeField]
+    private int _gumkaCount = 3;
+    [SerializeField]
+    private int _inkShotCount = 3;
+
+    [Header("other")]
+    [SerializeField]
     private float _moveSpeed = 5.0f;
 
     private Rigidbody2D _rb;
@@ -47,7 +57,7 @@ public class PlayerController : MonoBehaviour
     private int _emptyMultiplier = 5;
     [SerializeField]
     private int _enemyMultiplier = 10;
-    //private GameManager _gameManager;
+    private GameManager _gameManager;
 
     [SerializeField]
     private float _moveThreshold = 0.05f;
@@ -55,6 +65,24 @@ public class PlayerController : MonoBehaviour
     private float _escapeTime = 3.0f;
     private float _timer = 0.0f;
     private Vector3 _lastPos = Vector3.zero;
+
+    [SerializeField]
+    private float _maxSpeedMultiplier = 2.0f;
+    [SerializeField]
+    private float _speedUpTime = 10.0f;
+    [SerializeField]
+    private float _actualMultiplier = 1.0f;
+    private float _sharpenerTimer = 0.0f;
+
+    [SerializeField]
+    private float _rangeBigModifier = 2.0f;
+    private float _currentRange = 1.0f;
+    [SerializeField]
+    private float _brushTime = 5.0f;
+    private float _brushTimer = 0.0f;
+    [SerializeField]
+    private GameObject _rangeObject;
+
 
     private void Awake()
     {
@@ -65,58 +93,116 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         _playerColorSprite.color = _color;
-        //_gameManager = GameObject.FindGameObjectWithTag("GameController").GetComponent<GameManager>();
+        _gameManager = GameObject.FindGameObjectWithTag("GameController").GetComponent<GameManager>();
+        if (!_aiControlled)
+        {
+            _gameManager.UpdatePlayerGumka(_gumkaCount);
+            _gameManager.UpdatePlayerInkShot(_inkShotCount);
+            _gameManager.UpdateMainPlayerColor(this);
+        }
     }
 
     // Update is called once per frame
     void Update()
-    { 
-        if(_aiControlled)
+    {
+        if (_gameManager.gameRunning)
         {
-            switch (_state)
+            if (_aiControlled)
             {
-                case 0: //Choose what to do, should not stay in this state
-                    _targetPosition = GetNextTargetPosition();
+                switch (_state)
+                {
+                    case 0: //Choose what to do, should not stay in this state
+                        {
+                            _targetPosition = GetNextTargetPosition();
 
-                    _timer = _escapeTime;
-                    _state = 1;
-                    break;
-                case 1: //
-                    if (Vector3.Distance(transform.position, _lastPos) > _moveThreshold)
-                        _timer = _escapeTime;
-                    
-                    if(_timer <= 0.0f)
-                        _state = 2;
-                    if (Vector3.Distance(transform.position, _targetPosition) > 0.1f)
-                    {
-                        _moveDirection = (_targetPosition - transform.position).normalized;
-                    }
-                    else
-                    {
-                        transform.position = _targetPosition;
-                        _state = 0;
-                    }
-                    _lastPos = transform.position;
-                    break;
-                case 2:
-                    _targetPosition = GetNextTargetPosition(true);
+                            _timer = _escapeTime;
 
-                    _state = 1;
+                            int r = UnityEngine.Random.Range(0, 10000) + 1;
+                            if (r > 8000)
+                                _state = 3;
+                            else
+                                _state = 1;
+                        }
+                        break;
+                    case 1: //
+                        if (Vector3.Distance(transform.position, _lastPos) > _moveThreshold)
+                            _timer = _escapeTime;
 
-                    break;
+                        if (_timer <= 0.0f)
+                            _state = 2;
+                        if (Vector3.Distance(transform.position, _targetPosition) > 0.1f)
+                        {
+                            _moveDirection = (_targetPosition - transform.position).normalized;
+                        }
+                        else
+                        {
+                            transform.position = _targetPosition;
+                            _state = 0;
+                        }
+                        _lastPos = transform.position;
+                        break;
+                    case 2:
+                        _targetPosition = GetNextTargetPosition(true);
+
+                        _state = 1;
+
+                        break;
+                    case 3:
+                        {
+                            int r = UnityEngine.Random.Range(0, 2);
+                            switch (r)
+                            {
+                                case 0:
+                                    SpawnGumka();
+                                    break;
+                                case 1:
+                                    SpawnInkShot();
+                                    break;
+                            }
+                            _state = 1;
+                        }
+                        break;
+                }
+                if (_timer > 0.0f) _timer -= Time.deltaTime;
             }
-            if (_timer > 0.0f) _timer -= Time.deltaTime; 
-        }
-        else
-        {
+            else
+            {
 
+            }
+
+            if (_sharpenerTimer > 0.0f)
+            {
+                _sharpenerTimer -= Time.deltaTime;
+                _actualMultiplier = Mathf.Lerp(1.0f, _maxSpeedMultiplier, _sharpenerTimer / _speedUpTime);
+                if (_sharpenerTimer <= 0.0f)
+                {
+                    _actualMultiplier = 1.0f;
+                }
+            }
+
+            if (_brushTimer > 0.0f)
+            {
+                _brushTimer -= Time.deltaTime;
+                if (_brushTimer <= 0.0f)
+                    _currentRange = 1.0f;
+            }
+            _rangeObject.transform.localScale = new Vector3(_currentRange, _currentRange, _currentRange);
         }
     }
 
     private Vector3 GetNextTargetPosition(bool skipRandom = false)
     {
         int r = UnityEngine.Random.Range(0, 10000) + 1;
-        if (r > 4000 && !skipRandom)
+        if(r > 7000)
+        {
+            List<GameObject> pl = GameObject.FindGameObjectsWithTag("Pickup").ToList();
+            int i = UnityEngine.Random.Range(0, pl.Count);
+            if(pl.Count > 0)
+                return pl[i].transform.position;
+        }
+
+        r = UnityEngine.Random.Range(0, 10000) + 1;
+        if (r > 2000 && !skipRandom)
         {
             Collider2D[] colls = new Collider2D[24];
             var cf = new ContactFilter2D();
@@ -164,7 +250,7 @@ public class PlayerController : MonoBehaviour
         //basically deadzone prevention
         if (_moveDirection.magnitude > 0.01f)
         {
-            _rb.velocity = _moveDirection * _moveSpeed;
+            _rb.velocity = _moveDirection * _moveSpeed * _actualMultiplier;
             //Move to physics processing and base on RigidBody velocity
         }
         else
@@ -173,12 +259,20 @@ public class PlayerController : MonoBehaviour
 
     public void OnMove(InputValue value)
     {
-        _moveDirection = value.Get<Vector2>();
+        if (_gameManager.gameRunning)
+        {
+            _moveDirection = value.Get<Vector2>();
+        }
     }
 
     public void OnGumShot(InputValue value)
     {
         SpawnGumka();
+    }
+
+    public void OnInkShot(InputValue value)
+    {
+        SpawnInkShot();
     }
 
     public Color GetPlayerColor()
@@ -190,15 +284,80 @@ public class PlayerController : MonoBehaviour
     {
         _color = color;
         _playerColorSprite.color = _color;
+        if(!_aiControlled)
+            _gameManager.UpdateMainPlayerColor(this);
     }
 
     private void SpawnGumka()
     {
-        var go = GameObject.Instantiate(_gumka);
-        go.transform.position = transform.position;
-        if (_moveDirection.magnitude < 0.01f)
-            go.GetComponent<Gumka>().direction = Vector3.up;
-        else
-            go.GetComponent<Gumka>().direction = _moveDirection.normalized;
+        if (_gumkaCount > 0)
+        {
+            var go = GameObject.Instantiate(_gumka);
+            go.transform.position = transform.position;
+            if (_moveDirection.magnitude < 0.01f)
+                go.GetComponent<Gumka>().direction = Vector3.up;
+            else
+                go.GetComponent<Gumka>().direction = _moveDirection.normalized;
+            _gumkaCount--;
+            if (!_aiControlled)
+                _gameManager.UpdatePlayerGumka(_gumkaCount);
+        }
+    }
+
+    private void SpawnInkShot()
+    {
+        if (_inkShotCount > 0)
+        {
+            var go = GameObject.Instantiate(_inkBomb);
+            go.GetComponent<InkBomb>().player = this;
+            go.transform.position = transform.position;
+            if (_moveDirection.magnitude < 0.01f)
+                go.GetComponent<InkBomb>().direction = Vector3.up;
+            else
+                go.GetComponent<InkBomb>().direction = _moveDirection.normalized;
+            _inkShotCount--;
+            if (!_aiControlled)
+                _gameManager.UpdatePlayerInkShot(_inkShotCount);
+        }
+    }
+
+    public void AddGumkaAmmo(int amount)
+    {
+        _gumkaCount += amount;
+        if (!_aiControlled)
+            _gameManager.UpdatePlayerGumka(_gumkaCount);
+    }
+
+    public void AddInkShotAmmo(int amount)
+    {
+        _inkShotCount += amount;
+        if (!_aiControlled)
+            _gameManager.UpdatePlayerInkShot(_inkShotCount);
+    }
+
+    public void EnableSharpener()
+    {
+        _sharpenerTimer = _speedUpTime;
+    }
+
+    public void EnableBrush()
+    {
+        _brushTimer = _brushTime;
+        _currentRange = _rangeBigModifier;
+    }
+
+    public void SetZeroVelocity()
+    {
+        _moveDirection = Vector2.zero;
+    }
+
+    public void OnMenu(InputValue value)
+    {
+        Debug.Log("Pressed");
+        if(_gameManager.tutorialRead)
+        {
+            if (_gameManager.gameRunning) _gameManager.EnterMenu(); 
+            else _gameManager.ExitMenu();
+        }
     }
 }

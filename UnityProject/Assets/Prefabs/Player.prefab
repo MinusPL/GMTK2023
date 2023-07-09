@@ -50,6 +50,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _gumka: {fileID: 4276652264329937142, guid: 0cdb4cd12b267d24a93b542ef27a10d1, type: 3}
+  _inkBomb: {fileID: 8038198834531287901, guid: 431679f90a6329447b5ab6831043cef4, type: 3}
+  _gumkaCount: 1
+  _inkShotCount: 1
   _moveSpeed: 5
   _aiControlled: 0
   _color: {r: 1, g: 0, b: 0, a: 1}
@@ -65,6 +68,12 @@ MonoBehaviour:
   _enemyMultiplier: 4
   _moveThreshold: 0.05
   _escapeTime: 3
+  _maxSpeedMultiplier: 2
+  _speedUpTime: 5
+  _actualMultiplier: 1
+  _rangeBigModifier: 2
+  _brushTime: 5
+  _rangeObject: {fileID: 4374821435744517264}
 --- !u!50 &6598212007152653655
 Rigidbody2D:
   serializedVersion: 4
@@ -153,7 +162,7 @@ Transform:
   m_GameObject: {fileID: 1669473624398344685}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.1, y: 0.1, z: 0.1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 3946264403190029598}
@@ -279,7 +288,7 @@ CircleCollider2D:
   m_UsedByComposite: 0
   m_Offset: {x: 0, y: 0}
   serializedVersion: 2
-  m_Radius: 0.45
+  m_Radius: 0.5
 --- !u!50 &212698696693292367
 Rigidbody2D:
   serializedVersion: 4

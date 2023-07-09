@@ -9,6 +9,7 @@ TagManager:
   - PlayerRange
   - TileTag
   - Gumka
+  - Pickup
   layers:
   - Default
   - TransparentFX

@@ -111,4 +111,31 @@ public class TileController : MonoBehaviour
         }
         
     }
+
+    public void SetTile(PlayerController player)
+    {
+        if (_lastPlayerInTileQueue != -1) _gameManager.ChangePlayerScore(_lastPlayerInTileQueue, -1);
+        _gameManager.ChangePlayerScore(player.ID, 1);
+        _lastPlayerInTileQueue = player.ID;
+        //Insert new data and drop last one if needed
+        TileData newData = new()
+        {
+            color = player.GetPlayerColor(),
+            image = _spriteImages[Random.Range(0, _spriteImages.Count)],
+        };
+        _data.Enqueue(newData);
+
+        if (_data.Count > 4)
+            _data.Dequeue();
+
+        //Change Display
+        int li = 0;
+        foreach (var td in _data.Reverse())
+        {
+            _sprites[li].color = td.color;
+            _sprites[li].sprite = td.image;
+            li++;
+        }
+
+    }
 }

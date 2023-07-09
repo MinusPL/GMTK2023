@@ -21,7 +21,7 @@ public class Gumka : MonoBehaviour
     {
         _animator.SetFloat("dirX", direction.x);
         _animator.SetFloat("dirY", direction.y);
-        if (Vector3.Distance(transform.position, Vector3.zero) > 150.0f)
+        if (Vector3.Distance(transform.position, Vector3.zero) > 50.0f)
             Destroy(gameObject);
         transform.position += direction * _speed * Time.deltaTime;
     }
