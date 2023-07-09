@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class InGameUIController : MonoBehaviour
 {
@@ -13,6 +14,8 @@ public class InGameUIController : MonoBehaviour
 
     [SerializeField]
     private List<TextMeshProUGUI> _scoreTexts;
+    [SerializeField]
+    private List<Image> _playerImgs;
     // Start is called before the first frame update
     void Start()
     {
@@ -37,13 +40,16 @@ public class InGameUIController : MonoBehaviour
         _roundTimer = time;
     }
 
-    public void UpdateScores(Dictionary<PlayerController, int> scores)
+    public void UpdateScores(Dictionary<int, int> scores)
     {
-        int li = 0;
         foreach(var score in scores)
         {
-            _scoreTexts[li].text = String.Format("{0}", score.Value);
-            li++;
+            _scoreTexts[score.Key].text = String.Format("{0}", score.Value);
         }
+    }
+
+    public void SetPlayerColor(int playerIndex, Color color)
+    {
+        _playerImgs[playerIndex].color = color;
     }
 }

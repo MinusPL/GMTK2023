@@ -1,6 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
+using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.InputSystem.Users;
 
 public class GameManager : MonoBehaviour
 {
@@ -15,12 +19,32 @@ public class GameManager : MonoBehaviour
     [SerializeField]
     private float _roundTime = 180.0f;
 
+    [SerializeField]
+    private List<PlayerController> _players;
+    private int _pc = 0;
+
     private Grid _worldGrid;
     private Dictionary<Vector2Int, GameObject> _tiles;
 
-    private Dictionary<PlayerController, int> _score;
+    private Dictionary<int, int> _score;
 
     private InGameUIController _uiController;
+
+    [SerializeField]
+    private InputActionAsset _controlsAsset;
+
+    [SerializeField]
+    private float _minColorSwitchTime = 5.0f;
+    [SerializeField]
+    private float _maxColorSwitchTime = 20.0f;
+
+    private float _colorSwitchTimer = 0.0f;
+
+    private void Awake()
+    {
+        //InputUser.onUnpairedDeviceUsed += OnUnpairedDeviceUsed;
+    }
+
     // Start is called before the first frame update
     void Start()
     {
@@ -29,13 +53,33 @@ public class GameManager : MonoBehaviour
         _uiController = GameObject.FindGameObjectWithTag("UIController").GetComponent<InGameUIController>();
         PrepareLevelGrid();
         StartRound();
-        _score = new Dictionary<PlayerController, int>();
+        _score = new Dictionary<int, int>();
+
+        foreach(var player in _players)
+        {
+            _uiController.SetPlayerColor(player.ID, player.GetPlayerColor());
+        }
+
+        //InputUser.listenForUnpairedDeviceActivity = 4;
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        if (_colorSwitchTimer > 0.0f)
+        {
+            _colorSwitchTimer -= Time.deltaTime;
+            if (_colorSwitchTimer <= 0.0f)
+            {
+                _colorSwitchTimer = Random.Range(_minColorSwitchTime, _maxColorSwitchTime);
+                SwitchColors();
+            }
+        }
+    }
+
+    private void OnDestroy()
+    {
+        //InputUser.onUnpairedDeviceUsed -= OnUnpairedDeviceUsed;
     }
 
     private void PrepareLevelGrid()
@@ -62,13 +106,58 @@ public class GameManager : MonoBehaviour
     private void StartRound()
     {
         _uiController.StartRoundTimer(_roundTime);
+        _colorSwitchTimer = Random.Range(_minColorSwitchTime, _maxColorSwitchTime);
     }
 
-    public void ChangePlayerScore(PlayerController player, int changeValue)
+    public void ChangePlayerScore(int playerIndex, int changeValue)
     {
-        if (!_score.ContainsKey(player))
-            _score.Add(player, 0);
-        _score[player] += changeValue;
+        if (!_score.ContainsKey(playerIndex))
+            _score.Add(playerIndex, 0);
+        _score[playerIndex] += changeValue;
         _uiController.UpdateScores(_score);
     }
+
+
+    private void SwitchColors()
+    {
+        List<int> used = new List<int>();
+        List<int> ids = new List<int>();
+        List<Color> colors = new List<Color>();
+        foreach (var player in _players)
+        {
+            ids.Add(player.ID);
+            colors.Add(player.GetPlayerColor());
+        }
+
+        foreach(var player in _players)
+        {
+            int n;
+            do
+            {
+                n = Random.Range(0, 4);
+            } while (used.Contains(n));
+            used.Add(n);
+            player.ID = ids[n];
+            player.SetPlayerColor(colors[n]);
+
+        }
+    }
+
+    //void OnUnpairedDeviceUsed(InputControl control, InputEventPtr eventPtr)
+    //{
+    //    if (!(control is ButtonControl))
+    //        return;
+
+    //    if (control.device is Mouse)
+    //        return;
+
+    //    PlayerInput pi = (PlayerInput)_players[_pc].gameObject.AddComponent(typeof(PlayerInput));
+    //    pi.actions = _controlsAsset;
+    //    pi.gameObject.SetActive(false);
+    //    pi.gameObject.SetActive(true);
+    //    pi.SwitchCurrentActionMap("Player");
+    //    _pc++;
+    //    InputUser.listenForUnpairedDeviceActivity--;
+    //    Debug.Log("Unpaired device detected" + control.device.displayName);
+    //}
 }
